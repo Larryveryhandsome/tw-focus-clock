@@ -1,0 +1,10 @@
+{
+  "name": "tw-focus-clock",
+  "version": "1.0.0",
+  "description": "時。刻 專注時鐘：全螢幕防休眠大時鐘、番茄鐘專注計時、今日三件事與每日統計，純網頁、可離線",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}

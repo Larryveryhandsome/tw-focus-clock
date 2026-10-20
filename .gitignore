@@ -1,0 +1,5 @@
+node_modules/
+# 匯出的備份檔是你自己的資料，不要進 git
+tw-focus-clock-backup-*.json
+.DS_Store
+Thumbs.db
