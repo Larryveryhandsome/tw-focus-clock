@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="時。刻 專注時鐘：全螢幕防休眠大時鐘、番茄鐘專注計時、今日三件事與每日統計。免安裝、免帳號、可離線使用。">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="時刻">
+  <title>時。刻 專注時鐘</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // 先套用深淺色，避免閃一下
+    (function () {
+      var theme = 'system';
+      try {
+        var s = JSON.parse(localStorage.getItem('tw-focus-clock:v1') || '{}');
+        if (s && s.settings && /^(light|dark)$/.test(s.settings.theme)) theme = s.settings.theme;
+      } catch (e) {}
+      if (theme !== 'system') document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- 開場 -->
+  <div id="splash" class="splash" aria-hidden="true">
+    <div class="splash-line"></div>
+    <div class="splash-word"><span>時</span><span>刻</span></div>
+    <div class="splash-sub">把時間當作朋友</div>
+  </div>
+
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">時<span class="brand-dot">。</span>刻</span>
+        <span class="brand-date" id="hdr-date"></span>
+      </div>
+      <div class="top-actions">
+        <button type="button" class="icon-btn" id="btn-theme" aria-label="切換深淺色" title="切換深淺色">
+          <svg class="ico"><use href="#i-auto"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-settings" aria-label="設定" title="設定">
+          <svg class="ico"><use href="#i-sliders"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="storage-warning" class="banner" hidden role="status">
+      這個瀏覽器不允許儲存資料（可能是無痕模式），關掉網頁後紀錄會消失。需要保留時請到「回顧」匯出備份。
+    </div>
+
+    <main id="main">
+      <!-- 時鐘 -->
+      <section class="view view-clock" id="view-clock" data-view="clock" aria-label="時鐘">
+        <div class="clock-stage" id="clock-stage">
+          <div class="dial" id="dial" aria-hidden="true">
+            <div class="ticks" id="ticks"></div>
+            <div class="hand hand-hour" id="hand-hour"><i></i></div>
+            <div class="hand hand-min" id="hand-min"><i></i></div>
+            <div class="hand hand-sec" id="hand-sec"><i></i><b></b></div>
+            <div class="hub"></div>
+          </div>
+          <div class="digital" id="digital-time" role="timer" aria-live="off">00:00:00</div>
+          <div class="clock-date" id="clock-date">載入中...</div>
+          <div class="clock-focus" id="clock-focus" hidden></div>
+          <button type="button" class="pill-btn" id="btn-immersive">
+            <svg class="ico"><use href="#i-expand"/></svg>
+            <span>全螢幕防休眠</span>
+          </button>
+          <p class="clock-hint" id="clock-hint">輕觸螢幕進入全螢幕防休眠模式</p>
+          <p class="clock-status" id="wake-status" role="status" aria-live="polite"></p>
+          <button type="button" class="exit-btn" id="btn-exit-immersive" aria-label="離開全螢幕">
+            <svg class="ico"><use href="#i-x"/></svg><span>離開</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 專注 -->
+      <section class="view view-focus" id="view-focus" data-view="focus" aria-label="專注計時" hidden>
+        <div class="mode-chips" role="radiogroup" aria-label="計時模式">
+          <button type="button" class="chip" role="radio" data-mode="focus">專注</button>
+          <button type="button" class="chip" role="radio" data-mode="short">短休息</button>
+          <button type="button" class="chip" role="radio" data-mode="long">長休息</button>
+        </div>
+
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="ring-bg" cx="110" cy="110" r="100"/>
+            <circle class="ring-fg" id="ring-fg" cx="110" cy="110" r="100"/>
+          </svg>
+          <div class="ring-center">
+            <div class="timer-text" id="timer-text" role="timer" aria-live="off">25:00</div>
+            <div class="timer-label" id="timer-label">準備開始</div>
+          </div>
+        </div>
+
+        <div class="focus-task">
+          <label for="focus-task-select">這段專注在</label>
+          <select id="focus-task-select"></select>
+        </div>
+
+        <div class="timer-controls">
+          <button type="button" class="ctrl ctrl-sub" id="btn-reset" aria-label="重設">
+            <svg class="ico"><use href="#i-reset"/></svg><span>重設</span>
+          </button>
+          <button type="button" class="ctrl ctrl-main" id="btn-start">
+            <svg class="ico" id="start-ico"><use href="#i-play"/></svg><span id="start-text">開始</span>
+          </button>
+          <button type="button" class="ctrl ctrl-sub" id="btn-skip" aria-label="跳到下一段">
+            <svg class="ico"><use href="#i-skip"/></svg><span>下一段</span>
+          </button>
+        </div>
+        <button type="button" class="link-btn" id="btn-complete-linked" hidden>
+          <svg class="ico"><use href="#i-check"/></svg><span>這件事完成了</span>
+        </button>
+
+        <p class="quote" id="focus-quote"></p>
+        <p class="cycle-info" id="cycle-info"></p>
+        <p class="small-note">網頁版請保持畫面開啟；就算重新整理，計時也會接著算。</p>
+      </section>
+
+      <!-- 今日三件事 -->
+      <section class="view view-tasks" id="view-tasks" data-view="tasks" aria-label="今日三件事" hidden>
+        <div class="section-head">
+          <h1>今日聚焦</h1>
+          <span class="counter" id="task-counter" aria-label="今日完成數">0/3</span>
+        </div>
+        <p class="quote" id="tasks-empty" hidden>「專注當下，時間便有了形狀。」</p>
+        <ul class="task-list" id="task-list"></ul>
+
+        <form class="add-form" id="add-form" autocomplete="off">
+          <label class="sr-only" for="new-task-input">新增任務</label>
+          <div class="add-row">
+            <input type="text" id="new-task-input" maxlength="80" placeholder="輸入任務名稱..." enterkeyhint="done">
+            <button type="submit" class="round-btn" id="btn-add" aria-label="新增">
+              <svg class="ico"><use href="#i-plus"/></svg>
+            </button>
+          </div>
+          <div class="cat-chips" id="cat-chips" role="radiogroup" aria-label="選擇分類"></div>
+        </form>
+        <p class="full-note" id="full-note" hidden>今天的三件事已經排滿，先專心完成它們吧。</p>
+
+        <button type="button" class="link-btn" id="btn-open-carry" hidden></button>
+      </section>
+
+      <!-- 回顧 -->
+      <section class="view view-stats" id="view-stats" data-view="stats" aria-label="回顧" hidden>
+        <div class="section-head"><h1>時光軌跡</h1></div>
+        <div class="tiles">
+          <div class="tile"><div class="tile-num" id="st-completed">0</div><div class="tile-label">今日完成</div></div>
+          <div class="tile"><div class="tile-num" id="st-minutes">0</div><div class="tile-label">專注分鐘</div></div>
+          <div class="tile"><div class="tile-num" id="st-streak">0</div><div class="tile-label">連續天數</div></div>
+        </div>
+
+        <div class="card">
+          <h2>近 7 天專注</h2>
+          <div class="bars" id="week-bars" role="img"></div>
+        </div>
+
+        <div class="card">
+          <h2>本月時間都去哪了？</h2>
+          <div id="cat-stats"></div>
+        </div>
+
+        <div class="card">
+          <h2>未完成的承諾</h2>
+          <div id="pending-list"></div>
+        </div>
+
+        <div class="card">
+          <h2>資料備份</h2>
+          <p class="muted">資料只存在這台裝置的瀏覽器。換手機、清除瀏覽紀錄前，請先匯出備份。</p>
+          <div class="btn-row">
+            <button type="button" class="btn" id="btn-export"><svg class="ico"><use href="#i-download"/></svg><span>匯出備份</span></button>
+            <label class="btn" for="import-file"><svg class="ico"><use href="#i-upload"/></svg><span>匯入備份</span></label>
+            <input type="file" id="import-file" accept="application/json,.json" class="sr-only">
+          </div>
+          <button type="button" class="link-btn danger" id="btn-clear">清除這台裝置上的全部資料</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-foot">
+      <p class="custom-ad">需要改成你們公司的版本、幫忙安裝或串接？加 LINE 官方帳號 <a href="https://line.me/R/ti/p/@812ibtir" target="_blank" rel="noopener">@812ibtir</a>（留白事務所・林其衞），原則上 1～2 個工作天回覆報價。</p>
+    </footer>
+
+    <nav class="tabbar" aria-label="主選單">
+      <button type="button" class="tab" data-tab="clock"><svg class="ico"><use href="#i-clock"/></svg><span>時鐘</span></button>
+      <button type="button" class="tab" data-tab="focus"><svg class="ico"><use href="#i-timer"/></svg><span>專注</span></button>
+      <button type="button" class="tab" data-tab="tasks"><svg class="ico"><use href="#i-list"/></svg><span>今日</span></button>
+      <button type="button" class="tab" data-tab="stats"><svg class="ico"><use href="#i-chart"/></svg><span>回顧</span></button>
+    </nav>
+  </div>
+
+  <!-- 暖心提醒：延續未完成任務 -->
+  <div class="modal" id="modal-carry" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="carry-title">
+      <div class="modal-head">
+        <h2 id="carry-title">暖心提醒</h2>
+        <button type="button" class="icon-btn" data-close aria-label="關閉"><svg class="ico"><use href="#i-x"/></svg></button>
+      </div>
+      <p class="modal-lead">「不要緊，你正在前進。」</p>
+      <p class="muted" id="carry-desc"></p>
+      <ul class="carry-list" id="carry-list"></ul>
+      <p class="muted small" id="carry-room"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>不用了</button>
+        <button type="button" class="btn btn-primary" id="btn-carry-confirm">好，加入今天</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="modal" id="modal-settings" hidden>
+    <form class="modal-box" id="settings-form" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <h2 id="settings-title">設定</h2>
+        <button type="button" class="icon-btn" data-close aria-label="關閉"><svg class="ico"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="form-grid">
+        <label>專注（分鐘）<input type="number" name="focusMinutes" min="1" max="180" inputmode="numeric" required></label>
+        <label>短休息（分鐘）<input type="number" name="shortBreakMinutes" min="1" max="60" inputmode="numeric" required></label>
+        <label>長休息（分鐘）<input type="number" name="longBreakMinutes" min="1" max="90" inputmode="numeric" required></label>
+        <label>每幾次長休息<input type="number" name="longBreakEvery" min="1" max="12" inputmode="numeric" required></label>
+      </div>
+      <label class="check"><input type="checkbox" name="sound"> 時間到嗶一聲</label>
+      <button type="button" class="link-btn" id="btn-test-sound"><svg class="ico"><use href="#i-volume"/></svg><span>試聽</span></button>
+      <label class="check"><input type="checkbox" name="keepAwake"> 專注計時中讓螢幕保持開啟</label>
+      <label class="check"><input type="checkbox" name="autoStartNext"> 一段結束自動開始下一段</label>
+      <label class="check"><input type="checkbox" name="hour12"> 時鐘用 12 小時制（上午／下午）</label>
+      <div class="form-grid">
+        <label>深淺色
+          <select name="theme">
+            <option value="system">跟隨系統</option>
+            <option value="light">淺色</option>
+            <option value="dark">深色</option>
+          </select>
+        </label>
+        <label>時鐘樣式
+          <select name="clockStyle">
+            <option value="both">指針＋數字</option>
+            <option value="digital">只顯示大數字</option>
+          </select>
+        </label>
+      </div>
+      <p class="muted small">計時中改長度，會從下一段開始套用。</p>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>取消</button>
+        <button type="submit" class="btn btn-primary">儲存</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 確認 -->
+  <div class="modal" id="modal-confirm" hidden>
+    <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+      <h2 id="confirm-title">確定嗎？</h2>
+      <p class="muted" id="confirm-text"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>取消</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-ok">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 圖示（手繪 SVG，不用外部圖示庫） -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 20h18M7 16v-5M12 16V6M17 16v-8"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4 4v4.5h4.5"/></symbol>
+    <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5v14l10-7z" fill="currentColor"/><path d="M19 5v14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/></symbol>
+  </svg>
+
+  <script src="config.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
