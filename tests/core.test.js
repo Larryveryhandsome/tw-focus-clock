@@ -320,14 +320,14 @@ test('不對外連線：網頁檔案裡沒有任何外部網址', () => {
     // 只允許 SVG 的命名空間宣告，以及頁尾作者客製化 LINE 連結（使用者點了才開，不是載入的資源）
     const urls = (text.match(/(?:https?:)?\/\/[a-z0-9.-]+\.[a-z]{2,}[^\s"'<>)]*/gi) || [])
       .filter(u => !/^http:\/\/www\.w3\.org\/2000\/svg$/.test(u))
-      .filter(u => u !== 'https://line.me/R/ti/p/@812ibtir');
+      .filter(u => u !== 'https://line.me/ti/p/xzHT2IywOM');
     assert.deepEqual(urls, [], f);
   }
 });
 
 test('頁尾有作者客製化資訊（安裝後看得到），且不擋操作', () => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert.match(html, /<footer class="app-foot">\s*<p class="custom-ad">[^<]*<a href="https:\/\/line\.me\/R\/ti\/p\/@812ibtir" target="_blank" rel="noopener">@812ibtir<\/a>（留白事務所・林其衞）/);
+  assert.match(html, /<footer class="app-foot">\s*<p class="custom-ad">[^<]*<a href="https:\/\/line\.me\/ti\/p\/xzHT2IywOM" target="_blank" rel="noopener">林其衞<\/a>（0928-880-392）/);
   const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8');
   assert.match(css, /@media print \{ \.custom-ad \{ display: none/);
   assert.match(css, /body\.immersive \.app-foot \{ display: none; \}/);
